@@ -1,6 +1,7 @@
 from apiclient import discovery
 from oauth2client import client
 from oauth2client import tools
+from apiclient import errors
 from oauth2client.file import Storage
 import argparse
 import httplib2
@@ -46,10 +47,38 @@ class GoogleOAuth:
         http = credentials.authorize( http )
 
         # Construct the service object for the interacting with the Drive API.
-        service = discovery.build( 'drive', 'v2', http = http )
+        return discovery.build( 'drive', 'v2', http = http )
 
+    def downoadFiles( self, service ):
         try:
-            print http.request( "https://www.googleapis.com/drive/v2/about" )
+            page_token = None
+            while True:
+                try:
+                    param = {}
+                    if page_token:
+                        param['pageToken'] = page_token
+                    files = service.files().list(**param).execute()
+                    items = files['items']
+
+                    for fileitem in items:
+                        if fileitem.has_key('downloadUrl'):
+                            download_url = fileitem['downloadUrl']
+                            filename = fileitem['title']
+                            print 'Downloading %s' % filename
+
+                            resp, content = service._http.request(download_url)
+                            if resp.status == 200:
+                                target = open (filename, 'w')
+                                target.write(content)
+                                target.close()
+                            else:
+                                print 'An error occurred: %s' % resp
+                    page_token = files.get('nextPageToken')
+                    if not page_token:
+                        break
+                except errors.HttpError, error:
+                    print 'An error occurred: %s' % error
+                    break
         except client.AccessTokenRefreshError:
             print ( "The credentials have been revoked or expired, please re-run"
                     "the application to re-authorize" )
