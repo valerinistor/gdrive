@@ -1,0 +1,11 @@
+# Eclipse project files
+.project
+.pydevproject
+.settings
+
+# Python byte code files
+*.pyc
+
+# Credentials file
+oauth/credentials
+
