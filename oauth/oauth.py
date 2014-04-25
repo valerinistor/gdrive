@@ -82,3 +82,27 @@ class GoogleOAuth:
         except client.AccessTokenRefreshError:
             print ( "The credentials have been revoked or expired, please re-run"
                     "the application to re-authorize" )
+
+    def downoadFilesWithFolders(self, service, root_id, root_path):
+
+        if not os.path.exists(root_path):
+            os.makedirs(root_path)
+
+        children = service.children().list(folderId=root_id).execute()['items']
+
+        for child in children:
+            item = service.files().get(fileId=child['id']).execute()
+            path = os.path.join( root_path, item['title'] )
+            if item['mimeType'] == 'application/vnd.google-apps.folder':
+                self.downoadFilesWithFolders(service, item['id'], path)
+            else:
+                if item.has_key('downloadUrl'):
+                    download_url = item['downloadUrl']
+                    print 'Downloading %s' % path
+                    resp, content = service._http.request(download_url)
+                    if resp.status == 200:
+                        target = open (path, 'w')
+                        target.write(content)
+                        target.close()
+                    else:
+                        print 'An error occurred: %s' % resp

@@ -9,3 +9,6 @@
 # Credentials file
 oauth/credentials
 
+# Google Drive temp targer folder
+GoogleDrive
+
