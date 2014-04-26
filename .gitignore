@@ -7,7 +7,7 @@
 *.pyc
 
 # Credentials file
-oauth/credentials
+oauth/credentials.json
 
 # Google Drive temp targer folder
 GoogleDrive
