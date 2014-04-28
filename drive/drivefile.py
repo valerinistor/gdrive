@@ -1,4 +1,5 @@
 from apiclient import errors
+import os
 
 class GoogleDriveFile:
 
@@ -14,6 +15,9 @@ class GoogleDriveFile:
         target.close()
 
     def download_from_url(self):
+        if os.path.exists(self.path):
+            return
+        print 'Downloading %s' % self.path
         resp, content = self.service._http.request(self.download_url)
         if resp.status == 200:
             self._save_local_file(content)

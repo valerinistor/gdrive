@@ -32,7 +32,6 @@ class GoogleDrive:
                 self._synchronize_files(item['id'], path, query)
             else:
                 if item.has_key('downloadUrl'):
-                    print 'Downloading %s' % path
                     drive_file = GoogleDriveFile(self.service, path, item)
                     self.drive_files[path] = drive_file
                     drive_file.download_from_url()
@@ -46,7 +45,6 @@ class GoogleDrive:
             if item['mimeType'] == 'application/vnd.google-apps.folder':
                 self._synchronize_files(item['id'], path)
             if item.has_key('downloadUrl'):
-                print 'Downloading %s' % path
                 drive_file = GoogleDriveFile(self.service, path, item)
                 self.drive_files[path] = drive_file
                 drive_file.download_from_url()
