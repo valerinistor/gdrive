@@ -14,7 +14,7 @@ if __name__ == '__main__':
     drive = GoogleDrive(root_folder, goauth.get_service())
 
     # synchronize files  Drive
-    drive.synchronize_drive(root_folder)
+    drive.synchronize_drive()
 
     # start watching files for changes
     watcher = FileWatcher(drive, root_folder)

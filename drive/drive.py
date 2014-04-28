@@ -9,12 +9,12 @@ class GoogleDrive:
         self.root_folder = root_folder
         self.drive_files = {}
 
-    def synchronize_drive(self, root_folder):
-        shared_folder = os.path.join(root_folder, 'SharedWithMe')
-        trash_folder = os.path.join(root_folder, 'Trash')
+    def synchronize_drive(self):
+        shared_folder = os.path.join(self.root_folder, 'SharedWithMe')
+        trash_folder = os.path.join(self.root_folder, 'Trash')
 
         # synchronize drive files
-        self._synchronize_files('root', root_folder, query='not trashed')
+        self._synchronize_files('root', self.root_folder, query='not trashed')
         # synchronize shared files
         self._synchronize_files_by_type(shared_folder, 'sharedWithMe')
         # synchronize trashed files
