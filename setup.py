@@ -1,22 +1,25 @@
-from drive.filewatcher  import FileWatcher
+#! /usr/bin/python2.7
+
 from drive.drive import GoogleDrive
+from drive.filewatcher  import FileWatcher
 from oauth.oauth import GoogleOAuth
+
 
 if __name__ == '__main__':
 
     # authenticate to Drive
+    root_folder = './GoogleDrive'
     goauth = GoogleOAuth()
     goauth.authorize()
-    drive = GoogleDrive(goauth.get_service())
+    drive = GoogleDrive(root_folder, goauth.get_service())
 
     # synchronize files  Drive
-    rootFolder = './GoogleDrive'
-    drive.synchronize_files('root', rootFolder)
-    drive.synchronize_shared_files(rootFolder)
+    drive.synchronize_drive(root_folder)
 
     # start watching files for changes
-    watcher = FileWatcher(rootFolder)
+    watcher = FileWatcher(drive, root_folder)
     watcher.start()
+
     try:
         while watcher.is_alive():
             watcher.join(1)

@@ -4,9 +4,10 @@ import time
 
 class FileWatcher (threading.Thread):
 
-    def __init__(self, path_to_watch):
+    def __init__(self, drive, path_to_watch):
         threading.Thread.__init__(self)
         self.path_to_watch = path_to_watch
+        self.drive = drive
         self._stop_requested = False
 
     def run(self):
@@ -17,7 +18,7 @@ class FileWatcher (threading.Thread):
 
     def _files_to_timestamp(self, path):
         result = {}
-        for root, dirs, files in os.walk(path):
+        for root, _, files in os.walk(path):
             for file_to_watch in files:
                 f = os.path.join(root, file_to_watch)
                 result[f] = os.path.getmtime(f)
@@ -40,13 +41,8 @@ class FileWatcher (threading.Thread):
                     if os.path.getmtime(f) != before.get(f):
                         modified.append(f)
 
-            if added:
-                for f in added:
-                    print "added %s" % f
-            if removed:
-                for f in removed:
-                    print "removed %s" % f
-            if modified:
-                for f in modified:
-                    print "modified %s" % f
+            map(self.drive.on_create, added)
+            map(self.drive.on_delete, removed)
+            map(self.drive.on_modified, modified)
+
             before = after
