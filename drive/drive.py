@@ -83,7 +83,6 @@ class GoogleDrive:
 
     def on_delete(self, path):
         print 'deleted   %s' % path
-        self.drive_files[path].trash()
 
     def on_modified(self, path):
         print 'modified  %s' % path
