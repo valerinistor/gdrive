@@ -1,4 +1,5 @@
 from apiclient import errors
+from filewatcher  import FileWatcher
 from drivefile import GoogleDriveFile
 import os
 
@@ -19,6 +20,17 @@ class GoogleDrive:
         self._synchronize_files_by_type(shared_folder, 'sharedWithMe')
         # synchronize trashed files
         self._synchronize_files_by_type(trash_folder, "trashed and 'root' in parents")
+
+        # start watching files for changes
+        watcher = FileWatcher(self, self.root_folder)
+        watcher.start()
+
+        try:
+            while watcher.is_alive():
+                watcher.join(1)
+        except (KeyboardInterrupt, SystemExit):
+            print 'Shutting down ...'
+            watcher.request_stop()
 
     def _synchronize_files(self, root_id, root_path, query=None):
         self._create_local_dir(root_path)
