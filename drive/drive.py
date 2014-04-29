@@ -39,14 +39,13 @@ class GoogleDrive:
         for child in children:
             item = self._get_file(child['id'])
             path = os.path.join(root_path, item['title'])
+            drive_item = GoogleDriveFile(self.service, path, item)
+            self.drive_files[path] = drive_item
 
             if item['mimeType'] == 'application/vnd.google-apps.folder':
                 self._synchronize_files(item['id'], path, query)
-            else:
-                if item.has_key('downloadUrl'):
-                    drive_file = GoogleDriveFile(self.service, path, item)
-                    self.drive_files[path] = drive_file
-                    drive_file.download_from_url()
+            if item.has_key('downloadUrl'):
+                    drive_item.download_from_url()
 
     def _synchronize_files_by_type(self, root_path, query):
         self._create_local_dir(root_path)
@@ -54,12 +53,13 @@ class GoogleDrive:
 
         for item in items:
             path = os.path.join(root_path, item['title'])
+            drive_item = GoogleDriveFile(self.service, path, item)
+            self.drive_files[path] = drive_item
+
             if item['mimeType'] == 'application/vnd.google-apps.folder':
                 self._synchronize_files(item['id'], path)
             if item.has_key('downloadUrl'):
-                drive_file = GoogleDriveFile(self.service, path, item)
-                self.drive_files[path] = drive_file
-                drive_file.download_from_url()
+                drive_item.download_from_url()
 
     def _list_file(self, query=None):
         try:

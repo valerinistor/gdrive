@@ -4,13 +4,12 @@ import os
 
 class GoogleDriveFile:
 
-    def __init__(self, service, path, metadata=None):
+    def __init__(self, service, path, metadata):
         self.service = service
         self.path = path
-        if metadata is not None:
-            self.id = metadata['id']
-            if metadata.has_key('downloadUrl'):
-                self.download_url = metadata['downloadUrl']
+        self.id = metadata['id']
+        if metadata.has_key('downloadUrl'):
+            self.download_url = metadata['downloadUrl']
 
     def _save_local_file(self, content):
         target = open(self.path, 'w')

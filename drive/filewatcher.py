@@ -18,10 +18,13 @@ class FileWatcher (threading.Thread):
 
     def _files_to_timestamp(self, path):
         result = {}
-        for root, _, files in os.walk(path):
+        for root, dirs, files in os.walk(path):
             for file_to_watch in files:
                 f = os.path.join(root, file_to_watch)
                 result[f] = os.path.getmtime(f)
+            for dir_to_watch in dirs:
+                d = os.path.join(root, dir_to_watch)
+                result[d] = os.path.getmtime(d)
         return result
 
     def _watch_files(self, path_to_watch):
@@ -29,7 +32,7 @@ class FileWatcher (threading.Thread):
         before = self._files_to_timestamp(path_to_watch)
 
         while not self._stop_requested:
-            time.sleep(2)
+            time.sleep(5)
             after = self._files_to_timestamp(path_to_watch)
 
             added = [f for f in after.keys() if not f in before.keys()]
