@@ -110,12 +110,19 @@ class GoogleDrive:
 
     def on_rename(self, src_path, dest_path):
         print 'rename from %s to %s' % (src_path, dest_path)
-        sub_path = os.path.dirname(dest_path)
-        parent = self.drive_files[sub_path]
+        parent = self._find_parent(dest_path)
         temp = self.drive_files[src_path]
         temp.update(dest_path, parent.id)
         del self.drive_files[src_path]
         self.drive_files[dest_path] = temp
+
+    def _find_parent(self, path):
+        if self.drive_files.has_key(path):
+            return self.drive_files[path]
+        head, _ = os.path.split(path)
+        while not self.drive_files.has_key(head):
+            head, _ = os.path.split(head)
+        return self.drive_files[head]
 
     def _create_local_dir(self, path):
         if not os.path.exists(path):
