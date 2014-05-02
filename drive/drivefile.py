@@ -10,6 +10,7 @@ class GoogleDriveFile:
     def __init__(self, service, path, metadata=None):
         self.service = service
         self.path = path
+        self.uploaded = False
         if metadata is not None:
             self.id = metadata['id']
             if metadata.has_key('downloadUrl'):
@@ -31,6 +32,7 @@ class GoogleDriveFile:
             return
         print 'Downloading %s' % self.path
         resp, content = self.service._http.request(self.download_url)
+        self.uploaded = True
         if resp.status == 200:
             self._save_local_file(content)
         else:
@@ -62,8 +64,10 @@ class GoogleDriveFile:
 
             if not os.path.isdir(path):
                 media_body = MediaFileUpload(path, resumable=True)
-                if media_body.mimetype() is not None:
+                if media_body._mimetype is not None:
                     mime_type = media_body._mimetype
+                else:
+                    media_body._mimetype = mime_type
             else:
                 mime_type = folder_mime_type
 
@@ -80,6 +84,8 @@ class GoogleDriveFile:
             return None
 
     def create(self, path, parent_id='root'):
+        if self.uploaded:
+            return
         self.path = path
 
         mime_type = defaul_mime_type
@@ -87,8 +93,10 @@ class GoogleDriveFile:
 
         if not os.path.isdir(path):
             media_body = MediaFileUpload(path, resumable=True)
-            if media_body.mimetype() is not None:
+            if media_body._mimetype is not None:
                 mime_type = media_body._mimetype
+            else:
+                media_body._mimetype = mime_type
         else:
             mime_type = folder_mime_type
 
@@ -106,7 +114,7 @@ class GoogleDriveFile:
             self.id = metadata['id']
             if metadata.has_key('downloadUrl'):
                 self.download_url = metadata['downloadUrl']
-
+            self.uploaded = True
             return metadata
         except errors.HttpError, error:
             print 'An error occured: %s' % error
