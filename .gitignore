@@ -12,3 +12,6 @@ oauth/credentials.json
 # Google Drive temp targer folder
 GoogleDrive
 
+# vim swap file
+*.swp
+
