@@ -13,18 +13,19 @@ class FileWatcher (threading.Thread):
     def run(self):
         self._watch_files(self.path_to_watch)
 
-    def request_stop(self):
+    def stop(self):
         self._stop_requested = True
 
     def _files_to_timestamp(self, path):
         result = {}
         for root, dirs, files in os.walk(path):
+            files += dirs
             for file_to_watch in files:
+                if file_to_watch.startswith('.'):
+                    continue
                 f = os.path.join(root, file_to_watch)
-                result[f] = os.path.getmtime(f)
-            for dir_to_watch in dirs:
-                d = os.path.join(root, dir_to_watch)
-                result[d] = os.path.getmtime(d)
+                fstat = os.stat(f)
+                result[fstat.st_ino] = {'mtime': os.path.getmtime(f), 'path': f}
         return result
 
     def _watch_files(self, path_to_watch):
@@ -32,20 +33,36 @@ class FileWatcher (threading.Thread):
         before = self._files_to_timestamp(path_to_watch)
 
         while not self._stop_requested:
-            time.sleep(5)
+            time.sleep(3)
             after = self._files_to_timestamp(path_to_watch)
-
-            added = [f for f in after.keys() if not f in before.keys()]
+            # added = [f for f in after.keys() if not f in before.keys()]
             removed = [f for f in before.keys() if not f in after.keys()]
-            modified = []
+
+            for b in before.keys():
+                for a in after.keys():
+                    if after[a]['path'] == before[b]['path'] and a != b:
+                        temp = after[a]
+                        del after[a]
+                        after[b] = temp
 
             for f in before.keys():
-                if not f in removed:
-                    if os.path.getmtime(f) != before.get(f):
-                        modified.append(f)
+                # remove
+                if not f in after.keys():
+                    self.drive.on_delete(before[f]['path'])
+                    continue
+                # rename
+                if after[f]['path'] != before[f]['path']:
+                    self.drive.on_rename(before[f]['path'], after[f]['path'])
+                    continue
 
-            map(self.drive.on_create, added)
-            map(self.drive.on_delete, removed)
-            map(self.drive.on_modified, modified)
+                # modified
+                if not f in removed:
+                    if os.path.getmtime(before[f]['path']) != before[f]['mtime']:
+                        self.drive.on_modified(before[f]['path'])
+
+            # added
+            for f in after.keys():
+                if not f in before.keys():
+                    self.drive.on_create(after[f]['path'])
 
             before = after
