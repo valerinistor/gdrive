@@ -1,7 +1,9 @@
 from apiclient import errors
 from filewatcher  import FileWatcher
 from drivefile import GoogleDriveFile
+from drivefile import folder_mime_type
 import os
+import time
 
 class GoogleDrive:
 
@@ -9,6 +11,8 @@ class GoogleDrive:
         self.service = service
         self.root_folder = root_folder
         self.drive_files = {}
+        root_metadata = {'id': 'root'}
+        self.drive_files[self.root_folder] = GoogleDriveFile(service, root_folder, root_metadata)
 
     def synchronize_drive(self):
         shared_folder = os.path.join(self.root_folder, 'SharedWithMe')
@@ -26,11 +30,12 @@ class GoogleDrive:
         watcher.start()
 
         try:
-            while watcher.is_alive():
-                watcher.join(1)
+            while True:
+                time.sleep(1)
         except (KeyboardInterrupt, SystemExit):
             print 'Shutting down ...'
-            watcher.request_stop()
+            watcher.stop()
+        watcher.join()
 
     def _synchronize_files(self, root_id, root_path, query=None):
         self._create_local_dir(root_path)
@@ -42,7 +47,7 @@ class GoogleDrive:
             drive_item = GoogleDriveFile(self.service, path, item)
             self.drive_files[path] = drive_item
 
-            if item['mimeType'] == 'application/vnd.google-apps.folder':
+            if item['mimeType'] == folder_mime_type:
                 self._synchronize_files(item['id'], path, query)
             if item.has_key('downloadUrl'):
                     drive_item.download_from_url()
@@ -56,7 +61,7 @@ class GoogleDrive:
             drive_item = GoogleDriveFile(self.service, path, item)
             self.drive_files[path] = drive_item
 
-            if item['mimeType'] == 'application/vnd.google-apps.folder':
+            if item['mimeType'] == folder_mime_type:
                 self._synchronize_files(item['id'], path)
             if item.has_key('downloadUrl'):
                 drive_item.download_from_url()
@@ -85,10 +90,32 @@ class GoogleDrive:
         print 'deleted   %s' % path
 
     def on_modified(self, path):
+        if os.path.isdir(path):
+            return
         print 'modified  %s' % path
+        # self.drive_files[path].update(path)
 
     def on_create(self, path):
         print 'created   %s' % path
+
+        sub_path = os.path.dirname(path)
+        if not self.drive_files.has_key(sub_path):
+            self.on_create(sub_path)
+
+        # create drie item
+        drive_file = GoogleDriveFile(self.service, path)
+        drive_file.create(path, self.drive_files[sub_path].id)
+        self.drive_files[path] = drive_file
+        self._create_local_dir(path)
+
+    def on_rename(self, src_path, dest_path):
+        print 'rename from %s to %s' % (src_path, dest_path)
+        sub_path = os.path.dirname(dest_path)
+        parent = self.drive_files[sub_path]
+        temp = self.drive_files[src_path]
+        temp.update(dest_path, parent.id)
+        del self.drive_files[src_path]
+        self.drive_files[dest_path] = temp
 
     def _create_local_dir(self, path):
         if not os.path.exists(path):
