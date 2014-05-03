@@ -1,9 +1,13 @@
 from apiclient import errors
-from filewatcher  import FileWatcher
 from drivefile import GoogleDriveFile
 from drivefile import folder_mime_type
+from filewatcher  import FileWatcher
+import logging
 import os
 import time
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class GoogleDrive:
 
@@ -33,7 +37,6 @@ class GoogleDrive:
             while True:
                 time.sleep(1)
         except (KeyboardInterrupt, SystemExit):
-            print 'Shutting down ...'
             watcher.stop()
         watcher.join()
 
@@ -70,34 +73,31 @@ class GoogleDrive:
         try:
             return self.service.files().list(q=query).execute()['items']
         except errors.HttpError, error:
-            print 'An error occurred: %s' % error
+            logger.error('an error occurred: %s', error)
 
     def _list_children(self, folderId, query=None):
         items = []
         try:
             items = self.service.children().list(q=query, folderId=folderId).execute()['items']
         except errors.HttpError, error:
-            print 'An error occurred: %s' % error
+            logger.error('an error occurred: %s', error)
         return items
 
     def _get_file(self, file_id):
         try:
             return self.service.files().get(fileId=file_id).execute()
         except errors.HttpError, error:
-            print 'An error occurred: %s' % error
+            logger.error('an error occurred: %s', error)
 
     def on_delete(self, path):
-        print 'deleted   %s' % path
+        self.drive_files[path].delete()
 
     def on_modified(self, path):
         if os.path.isdir(path):
             return
-        print 'modified  %s' % path
-        # self.drive_files[path].update(path)
+        self.drive_files[path].update(path)
 
     def on_create(self, path):
-        print 'created   %s' % path
-
         sub_path = os.path.dirname(path)
         if not self.drive_files.has_key(sub_path):
             self.on_create(sub_path)
@@ -109,7 +109,8 @@ class GoogleDrive:
         self._create_local_dir(path)
 
     def on_rename(self, src_path, dest_path):
-        print 'rename from %s to %s' % (src_path, dest_path)
+        logger.info('renamed from %s to %s', src_path, dest_path)
+
         parent = self._find_parent(dest_path)
         temp = self.drive_files[src_path]
         temp.update(dest_path, parent.id)

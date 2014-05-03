@@ -1,9 +1,13 @@
 from apiclient import errors
 from apiclient.http import MediaFileUpload
+import logging
 import os
 
 defaul_mime_type = 'application/octet-stream'
 folder_mime_type = 'application/vnd.google-apps.folder'
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class GoogleDriveFile:
 
@@ -25,30 +29,33 @@ class GoogleDriveFile:
         try:
             return self.service.files().get(fileId=file_id).execute()
         except errors.HttpError, error:
-            print 'An error occurred: %s' % error
+            logger.error('an error occurred: %s', error)
 
     def download_from_url(self):
         if os.path.exists(self.path):
             return
-        print 'Downloading %s' % self.path
+
+        logger.info('downloading %s', self.path)
+
         resp, content = self.service._http.request(self.download_url)
         self.uploaded = True
         if resp.status == 200:
             self._save_local_file(content)
         else:
-            print 'An error occurred: %s' % resp
+            logger.error('an error occurred: %s', resp)
 
     def trash(self):
         try:
             self.service.files().trash(fileId=self.id).execute()
         except errors.HttpError, error:
-            print 'An error occurred: %s' % error
+            logger.error('an error occurred: %s', error)
 
     def delete(self):
         try:
-            self.service.files().delete(fileId=self.self.id).execute()
+            logger.info('deleting %s', self.path)
+            self.service.files().delete(fileId=self.id).execute()
         except errors.HttpError, error:
-            print 'An error occurred: %s' % error
+            logger.error('an error occurred: %s', error)
 
     def update(self, new_path=None, parent_id='root'):
         try:
@@ -75,12 +82,13 @@ class GoogleDriveFile:
             existing_file['parents'] = [{'id': parent_id}]
             existing_file['mimeType'] = mime_type
 
+            logger.info('updating %s', path)
             return self.service.files().update(
                 fileId=self.id,
                 body=existing_file,
                 media_body=media_body).execute()
         except errors.HttpError, error:
-            print 'An error occurred: %s' % error
+            logger.error('an error occurred: %s', error)
             return None
 
     def create(self, path, parent_id='root'):
@@ -111,11 +119,13 @@ class GoogleDriveFile:
                 body=body,
                 media_body=media_body).execute()
 
+            logger.info('creating %s', path)
+
             self.id = metadata['id']
             if metadata.has_key('downloadUrl'):
                 self.download_url = metadata['downloadUrl']
             self.uploaded = True
             return metadata
         except errors.HttpError, error:
-            print 'An error occured: %s' % error
+            logger.error('an error occurred: %s', error)
             return None

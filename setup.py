@@ -3,7 +3,6 @@
 from drive.drive import GoogleDrive
 from oauth.oauth import GoogleOAuth
 
-
 if __name__ == '__main__':
 
     # authenticate to Drive

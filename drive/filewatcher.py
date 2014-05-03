@@ -1,6 +1,10 @@
+import logging
 import os
 import threading
 import time
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class FileWatcher (threading.Thread):
 
@@ -29,7 +33,8 @@ class FileWatcher (threading.Thread):
         return result
 
     def _watch_files(self, path_to_watch):
-        print "watching ", path_to_watch
+        logger.info('start watching %s', path_to_watch)
+
         before = self._files_to_timestamp(path_to_watch)
 
         while not self._stop_requested:
