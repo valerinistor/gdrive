@@ -8,6 +8,8 @@ folder_mime_type = 'application/vnd.google-apps.folder'
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+logger_apiclient = logging.getLogger('apiclient.discovery')
+logger_apiclient.setLevel(logging.WARNING)
 
 class GoogleDriveFile:
 
@@ -30,6 +32,7 @@ class GoogleDriveFile:
             return self.service.files().get(fileId=file_id).execute()
         except errors.HttpError, error:
             logger.error('an error occurred: %s', error)
+            return None
 
     def download_from_url(self):
         if os.path.exists(self.path):
@@ -46,13 +49,14 @@ class GoogleDriveFile:
 
     def trash(self):
         try:
+            logger.info('trashed %s', self.path)
             self.service.files().trash(fileId=self.id).execute()
         except errors.HttpError, error:
             logger.error('an error occurred: %s', error)
 
     def delete(self):
         try:
-            logger.info('deleting %s', self.path)
+            logger.info('deleted %s', self.path)
             self.service.files().delete(fileId=self.id).execute()
         except errors.HttpError, error:
             logger.error('an error occurred: %s', error)
@@ -71,8 +75,11 @@ class GoogleDriveFile:
 
             if not os.path.isdir(path):
                 media_body = MediaFileUpload(path, resumable=True)
-                if media_body._mimetype is not None:
-                    mime_type = media_body._mimetype
+                if media_body.size() == 0:
+                    logger.error('cannot update no content file %s', path)
+                    return None
+                if media_body.mimetype() is not None:
+                    mime_type = media_body.mimetype()
                 else:
                     media_body._mimetype = mime_type
             else:
@@ -82,7 +89,7 @@ class GoogleDriveFile:
             existing_file['parents'] = [{'id': parent_id}]
             existing_file['mimeType'] = mime_type
 
-            logger.info('updating %s', path)
+            logger.info('updated %s', path)
             return self.service.files().update(
                 fileId=self.id,
                 body=existing_file,
@@ -101,8 +108,11 @@ class GoogleDriveFile:
 
         if not os.path.isdir(path):
             media_body = MediaFileUpload(path, resumable=True)
-            if media_body._mimetype is not None:
-                mime_type = media_body._mimetype
+            if media_body.size() == 0:
+                logger.error('cannot create no content file %s', path)
+                return None
+            if media_body.mimetype() is not None:
+                mime_type = media_body.mimetype()
             else:
                 media_body._mimetype = mime_type
         else:
@@ -119,7 +129,7 @@ class GoogleDriveFile:
                 body=body,
                 media_body=media_body).execute()
 
-            logger.info('creating %s', path)
+            logger.info('created %s, %s', body['title'], body['mimeType'])
 
             self.id = metadata['id']
             if metadata.has_key('downloadUrl'):
