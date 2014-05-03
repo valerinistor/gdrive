@@ -24,7 +24,10 @@ scope = [
     'https://www.googleapis.com/auth/drive.scripts'
   ]
 
-flow = client.flow_from_clientsecrets(client_secret, scope, message=tools.message_if_missing(client_secret))
+flow = client.flow_from_clientsecrets(
+    client_secret,
+    scope,
+    message=tools.message_if_missing(client_secret))
 
 
 class GoogleOAuth:

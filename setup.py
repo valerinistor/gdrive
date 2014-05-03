@@ -1,6 +1,7 @@
 #! /usr/bin/python2.7
 
 from drive.drive import GoogleDrive
+from drive.service import Service
 from oauth.oauth import GoogleOAuth
 
 if __name__ == '__main__':
@@ -9,7 +10,9 @@ if __name__ == '__main__':
     root_folder = './GoogleDrive'
     goauth = GoogleOAuth()
     goauth.authorize()
-    drive = GoogleDrive(root_folder, goauth.get_service())
+    service = Service()
+    service.service = goauth.get_service()
+    drive = GoogleDrive(root_folder)
 
     # synchronize files  Drive
     drive.synchronize_drive()
