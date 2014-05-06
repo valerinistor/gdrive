@@ -1,6 +1,8 @@
 from apiclient import errors
 from drivefile import GoogleDriveFile
 from drivefile import folder_mime_type
+from drivefile import partial_fields
+from drivefile import partial_item_fields
 from filewatcher  import FileWatcher
 import drive
 import logging
@@ -28,11 +30,11 @@ class GoogleDrive:
         # synchronize drive files
         self._synchronize_files('root', self.root_folder, query='not trashed')
         # synchronize shared files
-        # self._synchronize_files_by_type(shared_folder, 'sharedWithMe')
+        self._synchronize_files_by_type(shared_folder, 'sharedWithMe')
         # synchronize trashed files
-        # self._synchronize_files_by_type(
-        #    trash_folder,
-        #    "trashed and 'root' in parents")
+        self._synchronize_files_by_type(
+           trash_folder,
+           "trashed and 'root' in parents")
 
         # start watching files for changes
         watcher = FileWatcher(self, self.root_folder)
@@ -46,7 +48,6 @@ class GoogleDrive:
         watcher.join()
 
     def _synchronize_files(self, root_id, root_path, query=None):
-        logger.info("creating directory %s", root_path)
         self._create_local_dir(root_path)
         children = self._list_children(folderId=root_id, query=query)
 
@@ -62,7 +63,6 @@ class GoogleDrive:
                     drive_item.download_from_url()
 
     def _synchronize_files_by_type(self, root_path, query):
-        logger.info("creating directory %s", root_path)
         self._create_local_dir(root_path)
         items = self._list_file(query=query)
 
@@ -79,7 +79,9 @@ class GoogleDrive:
     def _list_file(self, query=None):
         items = []
         try:
-            items = service.files().list(q=query).execute()['items']
+            items = service.files().list(
+                     q=query,
+                     fields=partial_item_fields).execute()['items']
         except errors.HttpError, error:
             logger.error('an error occurred: %s', error)
         return items
@@ -96,7 +98,9 @@ class GoogleDrive:
 
     def _get_file(self, file_id):
         try:
-            return service.files().get(fileId=file_id).execute()
+            return service.files().get(
+                       fileId=file_id,
+                       fields=partial_fields).execute()
         except errors.HttpError, error:
             logger.error('an error occurred: %s', error)
             return None
@@ -141,4 +145,5 @@ class GoogleDrive:
 
     def _create_local_dir(self, path):
         if not os.path.exists(path):
+            logger.info("creating directory %s", path)
             os.makedirs(path)

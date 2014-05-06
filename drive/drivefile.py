@@ -6,6 +6,8 @@ import os
 
 defaul_mime_type = 'application/octet-stream'
 folder_mime_type = 'application/vnd.google-apps.folder'
+partial_fields = 'id,title,downloadUrl,mimeType'
+partial_item_fields = 'items(' + partial_fields + ')'
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -28,7 +30,9 @@ class GoogleDriveFile:
 
     def get_file(self, file_id):
         try:
-            return drive.service.files().get(fileId=file_id).execute()
+            return drive.service.files().get(
+                     fileId=file_id,
+                     fields=partial_fields).execute()
         except errors.HttpError, error:
             logger.error('an error occurred: %s', error)
         return None

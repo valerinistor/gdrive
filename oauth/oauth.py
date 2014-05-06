@@ -41,7 +41,7 @@ class GoogleOAuth:
         storage = Storage(os.path.join(os.path.dirname(__file__), 'credentials.json'))
 
         credentials = storage.get()
-        http = httplib2.Http()
+        http = httplib2.Http(cache=os.environ['HOME'] + '/.gdrive/cache')
 
         if credentials is None or credentials.invalid:
             credentials = tools.run_flow(flow, storage, flags, http=http)
