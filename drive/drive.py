@@ -2,17 +2,19 @@ from apiclient import errors
 from drivefile import GoogleDriveFile
 from drivefile import folder_mime_type
 from filewatcher  import FileWatcher
-from service import Service
+import drive
 import logging
 import os
 import time
 
+service = {}
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class GoogleDrive:
 
-    def __init__(self, root_folder):
+    def __init__(self, srv, root_folder):
+        drive.drive.service = srv
         self.root_folder = root_folder
         self.drive_files = {}
         root_metadata = {'id': 'root'}
@@ -44,6 +46,7 @@ class GoogleDrive:
         watcher.join()
 
     def _synchronize_files(self, root_id, root_path, query=None):
+        logger.info("creating directory %s", root_path)
         self._create_local_dir(root_path)
         children = self._list_children(folderId=root_id, query=query)
 
@@ -59,6 +62,7 @@ class GoogleDrive:
                     drive_item.download_from_url()
 
     def _synchronize_files_by_type(self, root_path, query):
+        logger.info("creating directory %s", root_path)
         self._create_local_dir(root_path)
         items = self._list_file(query=query)
 
@@ -75,7 +79,7 @@ class GoogleDrive:
     def _list_file(self, query=None):
         items = []
         try:
-            items = Service.service.files().list(q=query).execute()['items']
+            items = service.files().list(q=query).execute()['items']
         except errors.HttpError, error:
             logger.error('an error occurred: %s', error)
         return items
@@ -83,7 +87,7 @@ class GoogleDrive:
     def _list_children(self, folderId, query=None):
         items = []
         try:
-            items = Service.service.children().list(
+            items = service.children().list(
                 q=query,
                 folderId=folderId).execute()['items']
         except errors.HttpError, error:
@@ -92,7 +96,7 @@ class GoogleDrive:
 
     def _get_file(self, file_id):
         try:
-            return Service.service.files().get(fileId=file_id).execute()
+            return service.files().get(fileId=file_id).execute()
         except errors.HttpError, error:
             logger.error('an error occurred: %s', error)
             return None

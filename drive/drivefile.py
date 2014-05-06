@@ -1,6 +1,6 @@
 from apiclient import errors
 from apiclient.http import MediaFileUpload
-from service import Service
+import drive
 import logging
 import os
 
@@ -28,7 +28,7 @@ class GoogleDriveFile:
 
     def get_file(self, file_id):
         try:
-            return Service.service.files().get(fileId=file_id).execute()
+            return drive.service.files().get(fileId=file_id).execute()
         except errors.HttpError, error:
             logger.error('an error occurred: %s', error)
         return None
@@ -39,7 +39,7 @@ class GoogleDriveFile:
 
         logger.info('downloading %s', self.path)
 
-        resp, content = Service.service._http.request(self.download_url)
+        resp, content = drive.service._http.request(self.download_url)
         if resp.status == 200:
             self._save_local_file(content)
         else:
@@ -48,21 +48,21 @@ class GoogleDriveFile:
     def trash(self):
         try:
             logger.info('trashed %s', self.path)
-            Service.service.files().trash(fileId=self.id).execute()
+            drive.service.files().trash(fileId=self.id).execute()
         except errors.HttpError, error:
             logger.error('an error occurred: %s', error)
 
     def untrash(self):
         try:
             logger.info('untrashed %s', self.path)
-            Service.service.files().untrash(fileId=self.id).execute()
+            drive.service.files().untrash(fileId=self.id).execute()
         except errors.HttpError, error:
             logger.error('an error occurred: %s', error)
 
     def delete(self):
         try:
             logger.info('deleted %s', self.path)
-            Service.service.files().delete(fileId=self.id).execute()
+            drive.service.files().delete(fileId=self.id).execute()
         except errors.HttpError, error:
             logger.error('an error occurred: %s', error)
 
@@ -95,7 +95,7 @@ class GoogleDriveFile:
             existing_file['mimeType'] = mime_type
 
             logger.info('updated %s', path)
-            return Service.service.files().update(
+            return drive.service.files().update(
                 fileId=self.id,
                 body=existing_file,
                 media_body=media_body).execute()
@@ -126,7 +126,7 @@ class GoogleDriveFile:
         }
 
         try:
-            metadata = Service.service.files().insert(
+            metadata = drive.service.files().insert(
                 body=body,
                 media_body=media_body).execute()
 

@@ -22,7 +22,7 @@ scope = [
     'https://www.googleapis.com/auth/drive.metadata.readonly',
     'https://www.googleapis.com/auth/drive.readonly',
     'https://www.googleapis.com/auth/drive.scripts'
-  ]
+]
 
 flow = client.flow_from_clientsecrets(
     client_secret,
@@ -32,7 +32,7 @@ flow = client.flow_from_clientsecrets(
 
 class GoogleOAuth:
     def __init__(self):
-        self.service = dict()
+        self.service = {}
 
     def authorize(self):
         argv = ['--logging_level DEBUG']
