@@ -43,12 +43,12 @@ class FileWatcher (threading.Thread):
             # added = [f for f in after.keys() if not f in before.keys()]
             removed = [f for f in before.keys() if not f in after.keys()]
 
-            for b in before.keys():
-                for a in after.keys():
-                    if after[a]['path'] == before[b]['path'] and a != b:
-                        temp = after[a]
-                        del after[a]
-                        after[b] = temp
+#            for b in before.keys():
+#                for a in after.keys():
+#                    if after[a]['path'] == before[b]['path'] and a != b:
+#                        temp = after[a]
+#                        del after[a]
+#                        after[b] = temp
 
             for f in before.keys():
                 # remove

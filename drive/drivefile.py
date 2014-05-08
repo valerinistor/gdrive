@@ -9,7 +9,7 @@ folder_mime_type = 'application/vnd.google-apps.folder'
 partial_fields = 'id,title,downloadUrl,mimeType'
 partial_item_fields = 'items(' + partial_fields + ')'
 
-FORMAT = "%(levelname)s [%(asctime)s] [PID:%(process)d] [%(threadName)s] [%(name)-17s] [%(filename)-13s:%(lineno)-3d] : %(message)s"
+FORMAT = "%(levelname)-7s [%(asctime)s] [PID:%(process)d] [%(threadName)-10s] [%(name)-20s] [%(filename)-15s:%(lineno)-3d] : %(message)s"
 logging.basicConfig(level=logging.INFO, format=FORMAT)
 logger = logging.getLogger(__name__)
 logging.getLogger('apiclient.discovery').setLevel(logging.WARNING)
@@ -72,6 +72,9 @@ class GoogleDriveFile:
 
     def update(self, new_path=None, parent_id='root'):
         try:
+            if not hasattr(self, 'id'):
+                self.create(parent_id)
+
             existing_file = self.get_file(self.id)
 
             if new_path is None:
