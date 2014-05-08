@@ -9,10 +9,10 @@ folder_mime_type = 'application/vnd.google-apps.folder'
 partial_fields = 'id,title,downloadUrl,mimeType'
 partial_item_fields = 'items(' + partial_fields + ')'
 
-logging.basicConfig(level=logging.INFO)
+FORMAT = "%(levelname)s [%(asctime)s] [PID:%(process)d] [%(threadName)s] [%(name)-17s] [%(filename)-13s:%(lineno)-3d] : %(message)s"
+logging.basicConfig(level=logging.INFO, format=FORMAT)
 logger = logging.getLogger(__name__)
-logger_apiclient = logging.getLogger('apiclient.discovery')
-logger_apiclient.setLevel(logging.WARNING)
+logging.getLogger('apiclient.discovery').setLevel(logging.WARNING)
 
 class GoogleDriveFile:
 
