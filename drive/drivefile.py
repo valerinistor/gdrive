@@ -30,6 +30,11 @@ class GoogleDriveFile:
 
     def get_file(self, file_id):
         try:
+            if not hasattr(self, 'id'):
+                logger.error('cannot retrieve %s item is not on drive',
+                             self.path)
+                return
+
             return drive.service.files().get(
                      fileId=file_id,
                      fields=partial_fields).execute()
@@ -51,6 +56,11 @@ class GoogleDriveFile:
 
     def trash(self):
         try:
+            if not hasattr(self, 'id'):
+                logger.error('cannot trash %s item is not on drive',
+                             self.path)
+                return
+
             logger.info('trashed %s', self.path)
             drive.service.files().trash(fileId=self.id).execute()
         except errors.HttpError, error:
@@ -58,6 +68,11 @@ class GoogleDriveFile:
 
     def untrash(self):
         try:
+            if not hasattr(self, 'id'):
+                logger.error('cannot untrash %s item is not on drive',
+                             self.path)
+                return
+
             logger.info('untrashed %s', self.path)
             drive.service.files().untrash(fileId=self.id).execute()
         except errors.HttpError, error:
@@ -65,6 +80,11 @@ class GoogleDriveFile:
 
     def delete(self):
         try:
+            if not hasattr(self, 'id'):
+                logger.error('cannot delete %s item is not on drive',
+                             self.path)
+                return
+
             logger.info('deleted %s', self.path)
             drive.service.files().delete(fileId=self.id).execute()
         except errors.HttpError, error:
@@ -73,7 +93,7 @@ class GoogleDriveFile:
     def update(self, new_path=None, parent_id='root'):
         try:
             if not hasattr(self, 'id'):
-                self.create(parent_id)
+                return self.create(parent_id)
 
             existing_file = self.get_file(self.id)
 
