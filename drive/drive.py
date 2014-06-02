@@ -4,6 +4,7 @@ from drivefile import folder_mime_type
 from drivefile import partial_fields
 from drivefile import partial_item_fields
 from filewatcher  import FileWatcher
+from drivechanges import DriveChanges
 import drive
 import logging
 import os
@@ -30,22 +31,27 @@ class GoogleDrive:
         # synchronize drive files
         self._synchronize_files('root', self.root_folder, query='not trashed')
         # synchronize shared files
-        self._synchronize_files_by_type(shared_folder, 'sharedWithMe')
+        # self._synchronize_files_by_type(shared_folder, 'sharedWithMe')
         # synchronize trashed files
-        self._synchronize_files_by_type(
-           trash_folder,
-           "trashed and 'root' in parents")
+        # self._synchronize_files_by_type(
+        #   trash_folder,
+        #   "trashed and 'root' in parents")
 
         # start watching files for changes
-        watcher = FileWatcher(self, self.root_folder)
-        watcher.start()
+        local_watcher = FileWatcher(self, self.root_folder)
+        local_watcher.start()
+
+        drive_watcher = DriveChanges()
+        drive_watcher.start()
 
         try:
             while True:
                 time.sleep(1)
         except (KeyboardInterrupt, SystemExit):
-            watcher.stop()
-        watcher.join()
+            local_watcher.stop()
+            drive_watcher.stop()
+        local_watcher.join()
+        drive_watcher.join()
 
     def _synchronize_files(self, root_id, root_path, query=None):
         self._create_local_dir(root_path)

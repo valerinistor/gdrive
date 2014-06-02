@@ -15,7 +15,7 @@ class FileWatcher (threading.Thread):
         self._stop_requested = False
 
     def run(self):
-        self._watch_files(self.path_to_watch)
+        self._watch_files()
 
     def stop(self):
         self._stop_requested = True
@@ -32,14 +32,14 @@ class FileWatcher (threading.Thread):
                 result[fstat.st_ino] = {'mtime': os.path.getmtime(f), 'path': f}
         return result
 
-    def _watch_files(self, path_to_watch):
-        logger.info('start watching %s', path_to_watch)
+    def _watch_files(self):
+        logger.info('start watching %s', self.path_to_watch)
 
-        before = self._files_to_timestamp(path_to_watch)
+        before = self._files_to_timestamp(self.path_to_watch)
 
         while not self._stop_requested:
             time.sleep(3)
-            after = self._files_to_timestamp(path_to_watch)
+            after = self._files_to_timestamp(self.path_to_watch)
             # added = [f for f in after.keys() if not f in before.keys()]
             removed = [f for f in before.keys() if not f in after.keys()]
 
