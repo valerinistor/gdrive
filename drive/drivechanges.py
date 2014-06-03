@@ -9,8 +9,9 @@ logger = logging.getLogger(__name__)
 
 class DriveChanges (threading.Thread):
 
-    def __init__(self):
+    def __init__(self, drive):
         threading.Thread.__init__(self)
+        self.drive = drive
         self._stop_requested = False
 
     def run(self):
@@ -22,23 +23,21 @@ class DriveChanges (threading.Thread):
     def _watch_for_drive_changes(self):
         logger.info('start watching for drive changes')
 
-        changes = self._retrieve_all_changes()
+        changes, largestChangeId = self._retrieve_all_changes()
         while not self._stop_requested:
-            try:
-                startChange = max(changes, key=lambda x:int(x['id']))
-            except ValueError:
-                pass
-
-            changes = self._retrieve_all_changes(int(startChange['id']) + 1)
-
-            if len(changes) > 0:
-                logger.info('drive changes %s', map(lambda a: int(a['id']), changes))
-
             time.sleep(10)
+
+            changes, largestChangeId = self._retrieve_all_changes(largestChangeId + 1)
+
+            if len(changes) == 0:
+                continue
+
+            self.drive.notify_drive_changes(changes)
 
     def _retrieve_all_changes(self, start_change_id=None):
         result = []
         page_token = None
+        largestChangeId = 0
         while True:
             try:
                 param = {}
@@ -49,10 +48,11 @@ class DriveChanges (threading.Thread):
                 changes = drive.service.changes().list(**param).execute()
 
                 result.extend(changes['items'])
+                largestChangeId = int(changes['largestChangeId'])
                 page_token = changes.get('nextPageToken')
                 if not page_token:
                     break
             except errors.HttpError, error:
                 print 'An error occurred: %s' % error
                 break
-        return result
+        return (result, largestChangeId)

@@ -9,6 +9,7 @@ import drive
 import logging
 import os
 import time
+import shutil
 
 service = {}
 logging.basicConfig(level=logging.INFO)
@@ -33,15 +34,15 @@ class GoogleDrive:
         # synchronize shared files
         # self._synchronize_files_by_type(shared_folder, 'sharedWithMe')
         # synchronize trashed files
-        # self._synchronize_files_by_type(
-        #   trash_folder,
-        #   "trashed and 'root' in parents")
+        self._synchronize_files_by_type(
+           trash_folder,
+           "trashed and 'root' in parents")
 
         # start watching files for changes
         local_watcher = FileWatcher(self, self.root_folder)
         local_watcher.start()
 
-        drive_watcher = DriveChanges()
+        drive_watcher = DriveChanges(self)
         drive_watcher.start()
 
         try:
@@ -58,7 +59,7 @@ class GoogleDrive:
         children = self._list_children(folderId=root_id, query=query)
 
         for child in children:
-            item = self._get_file(child['id'])
+            item = self._get_remote_file(child['id'])
             path = os.path.join(root_path, item['title'])
             drive_item = GoogleDriveFile(path, item)
             self.drive_files[path] = drive_item
@@ -102,7 +103,7 @@ class GoogleDrive:
             logger.error('an error occurred: %s', error)
         return items
 
-    def _get_file(self, file_id):
+    def _get_remote_file(self, file_id):
         try:
             return service.files().get(
                        fileId=file_id,
@@ -111,20 +112,30 @@ class GoogleDrive:
             logger.error('an error occurred: %s', error)
             return None
 
-    def on_delete(self, path):
+    def on_local_delete(self, path):
+        if not self.drive_files.has_key(path):
+            return
+
         to_delete = self.drive_files[path]
         to_delete.delete()
         del self.drive_files[path]
 
-    def on_modified(self, path):
+    def on_local_modified(self, path):
+        if not self.drive_files.has_key(path):
+            return
+
         if os.path.isdir(path):
             return
         self.drive_files[path].update(path)
 
-    def on_create(self, path):
+    def on_local_create(self, path):
         head, _ = os.path.split(path)
         if not self.drive_files.has_key(head):
-            self.on_create(head)
+            self.on_local_create(head)
+
+        if  self.drive_files.has_key(path):
+            logger.info('file %s already exists', path)
+            return
 
         # create drive item
         parent = self._find_parent(head)
@@ -132,7 +143,10 @@ class GoogleDrive:
         to_create.create(parent.id)
         self.drive_files[path] = to_create
 
-    def on_rename(self, src_path, dest_path):
+    def on_local_rename(self, src_path, dest_path):
+        if not self.drive_files.has_key(src_path):
+            return
+
         logger.info('renamed from %s to %s', src_path, dest_path)
 
         parent = self._find_parent(dest_path)
@@ -140,6 +154,65 @@ class GoogleDrive:
         temp.update(dest_path, parent.id)
         self.drive_files[dest_path] = temp
         del self.drive_files[src_path]
+
+    def notify_drive_changes(self, changes):
+        logger.info('drive changes %s', map(lambda a: int(a['id']), changes))
+
+        for change in changes:
+            local_file = self._get_local_file(change['fileId'])
+
+            # file does not exists locally
+            if local_file is None:
+                if not change['deleted']:
+                    self.on_drive_create(change)
+            # file exists locally
+            else:
+                if change['deleted']:
+                    self.on_drive_delete(local_file.path)
+
+    def on_drive_delete(self, path):
+        if not self.drive_files.has_key(path):
+            return
+
+        logger.info('drive change: delete %s', path)
+
+        if os.path.isfile(path):
+            os.remove(path)
+        else:
+            shutil.rmtree(path)
+        del self.drive_files[path]
+
+    def on_drive_modified(self):
+        pass
+
+    def on_drive_create(self, change_metadata):
+        # TODO refactor this method
+        remote_file = self._get_remote_file(change_metadata['fileId'])
+        path = ''
+        while not remote_file['parents'][0]['isRoot']:
+            path = os.path.join(remote_file['title'], path)
+            remote_file = self._get_remote_file(remote_file['parents'][0]['id'])
+        path = os.path.join(remote_file['title'], path)
+        remote_file = self._get_remote_file(remote_file['parents'][0]['id'])
+        path = os.path.join(self.root_folder, path)[0:-1]
+
+        remote_file = self._get_remote_file(change_metadata['fileId'])
+        drive_item = GoogleDriveFile(path, remote_file)
+        self.drive_files[path] = drive_item
+
+        if remote_file['mimeType'] == folder_mime_type:
+            self._create_local_dir(path)
+        if remote_file.has_key('downloadUrl'):
+            drive_item.download_from_url()
+
+    def on_drive_rename(self):
+        pass
+
+    def _get_local_file(self, file_id):
+        for key in self.drive_files:
+            if self.drive_files[key].id == file_id:
+                return self.drive_files[key]
+        return None
 
     def _find_parent(self, path):
         if self.drive_files.has_key(path):

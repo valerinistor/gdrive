@@ -53,21 +53,21 @@ class FileWatcher (threading.Thread):
             for f in before.keys():
                 # remove
                 if not f in after.keys():
-                    self.drive.on_delete(before[f]['path'])
+                    self.drive.on_local_delete(before[f]['path'])
                     continue
                 # rename
                 if after[f]['path'] != before[f]['path']:
-                    self.drive.on_rename(before[f]['path'], after[f]['path'])
+                    self.drive.on_local_rename(before[f]['path'], after[f]['path'])
                     continue
 
                 # modified
                 if not f in removed:
                     if os.path.getmtime(before[f]['path']) != before[f]['mtime']:
-                        self.drive.on_modified(before[f]['path'])
+                        self.drive.on_local_modified(before[f]['path'])
 
             # added
             for f in after.keys():
                 if not f in before.keys():
-                    self.drive.on_create(after[f]['path'])
+                    self.drive.on_local_create(after[f]['path'])
 
             before = after

@@ -6,7 +6,7 @@ import os
 
 defaul_mime_type = 'application/octet-stream'
 folder_mime_type = 'application/vnd.google-apps.folder'
-partial_fields = 'id,title,downloadUrl,mimeType'
+partial_fields = 'id,title,downloadUrl,mimeType,parents'
 partial_item_fields = 'items(' + partial_fields + ')'
 
 FORMAT = "%(levelname)-7s [%(asctime)s] [PID:%(process)d] [%(threadName)-10s] [%(name)-20s] [%(filename)-15s:%(lineno)-3d] : %(message)s"
