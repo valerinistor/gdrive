@@ -10,8 +10,11 @@ import logging
 import os
 import time
 import shutil
+import threading
 
 service = {}
+lock = None
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -19,6 +22,8 @@ class GoogleDrive:
 
     def __init__(self, srv, root_folder):
         drive.drive.service = srv
+        drive.drive.lock = threading.Lock()
+
         self.root_folder = root_folder
         self.drive_files = {}
         root_metadata = {'id': 'root'}
@@ -156,11 +161,8 @@ class GoogleDrive:
         del self.drive_files[src_path]
 
     def notify_drive_changes(self, changes):
-        logger.info('drive changes %s', map(lambda a: int(a['id']), changes))
-
         for change in changes:
             local_file = self._get_local_file(change['fileId'])
-
             # file does not exists locally
             if local_file is None:
                 if not change['deleted']:
@@ -169,6 +171,12 @@ class GoogleDrive:
             else:
                 if change['deleted']:
                     self.on_drive_delete(local_file.path)
+                else:
+                    if change.has_key('file'):
+                        if os.path.basename(local_file.path) != change['file']['title']:
+                            self.on_drive_rename(local_file, change['file'])
+                        else:
+                            self.on_drive_modified(local_file, change['file'])
 
     def on_drive_delete(self, path):
         if not self.drive_files.has_key(path):
@@ -182,8 +190,16 @@ class GoogleDrive:
             shutil.rmtree(path)
         del self.drive_files[path]
 
-    def on_drive_modified(self):
-        pass
+    def on_drive_modified(self, local_file, file_metadata):
+        if os.path.isdir(local_file.path) or file_metadata['mimeType'] == folder_mime_type:
+            return
+
+        if not local_file.md5Checksum == file_metadata['md5Checksum']:
+            logger.info('drive change: modified %s', file_metadata['title'])
+            local_file.download_from_url()
+            local_file.md5Checksum = file_metadata['md5Checksum']
+        else:
+            logger.info('drive change: unknown change for %s', local_file.path)
 
     def on_drive_create(self, change_metadata):
         # TODO refactor this method
@@ -205,8 +221,15 @@ class GoogleDrive:
         if remote_file.has_key('downloadUrl'):
             drive_item.download_from_url()
 
-    def on_drive_rename(self):
-        pass
+    def on_drive_rename(self, local_file, file_metadata):
+        new_path = os.path.join(os.path.dirname(local_file.path), file_metadata['title'])
+        to_create = GoogleDriveFile(new_path, file_metadata)
+
+        self.drive_files[new_path] = to_create
+        del self.drive_files[local_file.path]
+
+        logger.info('drive change: renamed from %s to %s', local_file.path, new_path)
+        os.rename(local_file.path, new_path)
 
     def _get_local_file(self, file_id):
         for key in self.drive_files:
