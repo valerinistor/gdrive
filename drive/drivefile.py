@@ -1,6 +1,7 @@
 from apiclient import errors
 from apiclient.http import MediaFileUpload
 import drive
+import hashlib
 import logging
 import os
 
@@ -24,6 +25,8 @@ class GoogleDriveFile:
                 self.download_url = metadata['downloadUrl']
             if metadata.has_key('md5Checksum'):
                 self.md5Checksum = metadata['md5Checksum']
+            if metadata.has_key('title'):
+                self.title = metadata['title']
 
     def _save_local_file(self, content):
         head, _ = os.path.split(self.path)
@@ -49,6 +52,10 @@ class GoogleDriveFile:
         return None
 
     def download_from_url(self):
+        if os.path.exists(self.path):
+            if self._md5Checksum(self.path) == self.md5Checksum:
+                return
+
         logger.info('downloading %s', self.path)
 
         resp, content = drive.service._http.request(self.download_url)
@@ -56,6 +63,16 @@ class GoogleDriveFile:
             self._save_local_file(content)
         else:
             logger.error('an error occurred: %s', resp)
+
+    def _md5Checksum(self, filePath):
+        with open(filePath, 'rb') as fh:
+            m = hashlib.md5()
+            while True:
+                data = fh.read(8192)
+                if not data:
+                    break
+                m.update(data)
+            return m.hexdigest()
 
     def trash(self):
         try:
