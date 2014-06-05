@@ -25,7 +25,7 @@ class DriveChanges (threading.Thread):
 
         changes, largestChangeId = self._retrieve_all_changes()
         while not self._stop_requested:
-            time.sleep(10)
+            time.sleep(15)
 
             changes, largestChangeId = self._retrieve_all_changes(largestChangeId + 1)
 
@@ -45,7 +45,8 @@ class DriveChanges (threading.Thread):
                     param['startChangeId'] = start_change_id
                 if page_token:
                     param['pageToken'] = page_token
-                changes = drive.service.changes().list(**param).execute()
+                with drive.lock:
+                    changes = drive.service.changes().list(**param).execute()
 
                 result.extend(changes['items'])
                 largestChangeId = int(changes['largestChangeId'])

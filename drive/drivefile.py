@@ -85,7 +85,8 @@ class GoogleDriveFile:
                 return
 
             logger.info('deleted %s', self.path)
-            drive.service.files().delete(fileId=self.id).execute()
+            with drive.lock:
+                drive.service.files().delete(fileId=self.id).execute()
         except errors.HttpError, error:
             logger.error('an error occurred: %s', error)
 
@@ -119,10 +120,11 @@ class GoogleDriveFile:
             existing_file['mimeType'] = mime_type
 
             logger.info('updated %s', self.path)
-            metadata = drive.service.files().update(
-                fileId=self.id,
-                body=existing_file,
-                media_body=media_body).execute()
+            with drive.lock:
+                metadata = drive.service.files().update(
+                    fileId=self.id,
+                    body=existing_file,
+                    media_body=media_body).execute()
 
             self.id = metadata['id']
             if metadata.has_key('downloadUrl'):
@@ -157,9 +159,10 @@ class GoogleDriveFile:
         }
 
         try:
-            metadata = drive.service.files().insert(
-                body=body,
-                media_body=media_body).execute()
+            with drive.lock:
+                metadata = drive.service.files().insert(
+                    body=body,
+                    media_body=media_body).execute()
 
             logger.info('created %s, %s', self.path, body['mimeType'])
 
