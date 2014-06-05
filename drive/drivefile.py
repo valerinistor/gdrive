@@ -26,6 +26,10 @@ class GoogleDriveFile:
                 self.md5Checksum = metadata['md5Checksum']
 
     def _save_local_file(self, content):
+        head, _ = os.path.split(self.path)
+        if not os.path.exists(head):
+            os.makedirs(head)
+
         target = open(self.path, 'w')
         target.write(content)
         target.close()

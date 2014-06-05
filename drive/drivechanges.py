@@ -1,8 +1,8 @@
 from apiclient import errors
+import drive
 import logging
 import threading
 import time
-import drive
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

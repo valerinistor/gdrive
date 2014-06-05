@@ -1,16 +1,16 @@
 from apiclient import errors
+from drivechanges import DriveChanges
 from drivefile import GoogleDriveFile
 from drivefile import folder_mime_type
 from drivefile import partial_fields
 from drivefile import partial_item_fields
 from filewatcher  import FileWatcher
-from drivechanges import DriveChanges
 import drive
 import logging
 import os
-import time
 import shutil
 import threading
+import time
 
 service = {}
 lock = None
@@ -32,16 +32,12 @@ class GoogleDrive:
 
     def synchronize_drive(self):
         shared_folder = os.path.join(self.root_folder, 'SharedWithMe')
-        trash_folder = os.path.join(self.root_folder, 'Trash')
 
         # synchronize drive files
-        self._synchronize_files('root', self.root_folder, query='not trashed')
+        self._synchronize_files('root', self.root_folder)
+
         # synchronize shared files
         # self._synchronize_files_by_type(shared_folder, 'sharedWithMe')
-        # synchronize trashed files
-        self._synchronize_files_by_type(
-           trash_folder,
-           "trashed and 'root' in parents")
 
         # start watching files for changes
         local_watcher = FileWatcher(self, self.root_folder)
@@ -166,15 +162,16 @@ class GoogleDrive:
             # file does not exists locally
             if local_file is None:
                 if not change['deleted']:
-                    self.on_drive_create(change)
+                    self.on_drive_create(change['fileId'])
             # file exists locally
             else:
                 if change['deleted']:
                     self.on_drive_delete(local_file.path)
                 else:
                     if change.has_key('file'):
-                        if os.path.basename(local_file.path) != change['file']['title']:
-                            self.on_drive_rename(local_file, change['file'])
+                        new_path = self._compute_drive_path_by_file_id(change['file']['id']);
+                        if not local_file.path == new_path:
+                            self.on_drive_rename(local_file.path, new_path)
                         else:
                             self.on_drive_modified(local_file, change['file'])
 
@@ -184,11 +181,16 @@ class GoogleDrive:
 
         logger.info('drive change: delete %s', path)
 
+        if not os.path.exists(path):
+            logger.info('path %s does not exists', path)
+            return
+
         if os.path.isfile(path):
             os.remove(path)
         else:
             shutil.rmtree(path)
         del self.drive_files[path]
+
 
     def on_drive_modified(self, local_file, file_metadata):
         if os.path.isdir(local_file.path) or file_metadata['mimeType'] == folder_mime_type:
@@ -201,18 +203,9 @@ class GoogleDrive:
         else:
             logger.info('drive change: unknown change for %s', local_file.path)
 
-    def on_drive_create(self, change_metadata):
-        # TODO refactor this method
-        remote_file = self._get_remote_file(change_metadata['fileId'])
-        path = ''
-        while not remote_file['parents'][0]['isRoot']:
-            path = os.path.join(remote_file['title'], path)
-            remote_file = self._get_remote_file(remote_file['parents'][0]['id'])
-        path = os.path.join(remote_file['title'], path)
-        remote_file = self._get_remote_file(remote_file['parents'][0]['id'])
-        path = os.path.join(self.root_folder, path)[0:-1]
-
-        remote_file = self._get_remote_file(change_metadata['fileId'])
+    def on_drive_create(self, file_id):
+        path = self._compute_drive_path_by_file_id(file_id)
+        remote_file = self._get_remote_file(file_id)
         drive_item = GoogleDriveFile(path, remote_file)
         self.drive_files[path] = drive_item
 
@@ -221,15 +214,28 @@ class GoogleDrive:
         if remote_file.has_key('downloadUrl'):
             drive_item.download_from_url()
 
-    def on_drive_rename(self, local_file, file_metadata):
-        new_path = os.path.join(os.path.dirname(local_file.path), file_metadata['title'])
-        to_create = GoogleDriveFile(new_path, file_metadata)
+    def on_drive_rename(self, src_path, dest_path):
+        if not self.drive_files.has_key(src_path):
+            return
 
-        self.drive_files[new_path] = to_create
-        del self.drive_files[local_file.path]
+        logger.info('drive change: renamed from %s to %s', src_path, dest_path)
 
-        logger.info('drive change: renamed from %s to %s', local_file.path, new_path)
-        os.rename(local_file.path, new_path)
+        temp = self.drive_files[src_path]
+        temp.path = dest_path
+        self.drive_files[dest_path] = temp
+        del self.drive_files[src_path]
+        os.rename(src_path, dest_path)
+
+    def _compute_drive_path_by_file_id(self, file_id):
+        # TODO refactor this method
+        remote_file = self._get_remote_file(file_id)
+        path = ''
+        while not remote_file['parents'][0]['isRoot']:
+            path = os.path.join(remote_file['title'], path)
+            remote_file = self._get_remote_file(remote_file['parents'][0]['id'])
+        path = os.path.join(remote_file['title'], path)
+        remote_file = self._get_remote_file(remote_file['parents'][0]['id'])
+        return os.path.join(self.root_folder, path)[0:-1]
 
     def _get_local_file(self, file_id):
         for key in self.drive_files:
