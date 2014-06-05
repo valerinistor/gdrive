@@ -8,6 +8,7 @@ from filewatcher  import FileWatcher
 import drive
 import logging
 import os
+import pynotify
 import shutil
 import threading
 import time
@@ -29,6 +30,7 @@ class GoogleDrive:
         root_metadata = {'id': 'root'}
         root_item = GoogleDriveFile(root_folder, root_metadata)
         self.drive_files[root_folder] = root_item
+        pynotify.init("gdrive")
 
     def synchronize_drive(self):
         shared_folder = os.path.join(self.root_folder, 'SharedWithMe')
@@ -167,6 +169,7 @@ class GoogleDrive:
             else:
                 if change['deleted']:
                     self.on_drive_delete(local_file.path)
+                    self._notify('Deleted ' + local_file.title)
                 else:
                     if change.has_key('file'):
                         new_path = self._compute_drive_path_by_file_id(change['file']['id']);
@@ -200,6 +203,7 @@ class GoogleDrive:
             logger.info('drive change: modified %s', file_metadata['title'])
             local_file.download_from_url()
             local_file.md5Checksum = file_metadata['md5Checksum']
+            self._notify('Changed ' + file_metadata['title'])
         else:
             logger.info('drive change: unknown change for %s', local_file.path)
 
@@ -209,6 +213,7 @@ class GoogleDrive:
         drive_item = GoogleDriveFile(path, remote_file)
         self.drive_files[path] = drive_item
 
+        self._notify('Created ' + remote_file['title'])
         if remote_file['mimeType'] == folder_mime_type:
             self._create_local_dir(path)
         if remote_file.has_key('downloadUrl'):
@@ -255,3 +260,8 @@ class GoogleDrive:
         if not os.path.exists(path):
             logger.info("creating directory %s", path)
             os.makedirs(path)
+
+    def _notify(self, message):
+        icon = os.path.join(os.path.join(os.path.dirname(__file__)), 'drive.png')
+        notice = pynotify.Notification('Google Drive', message, icon)
+        notice.show()
