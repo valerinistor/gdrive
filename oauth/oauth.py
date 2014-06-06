@@ -12,7 +12,7 @@ parser = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter,
     parents=[tools.argparser])
 
-client_secret = os.path.join(os.path.dirname(__file__), 'client_secrets.json')
+client_secret = os.path.join(os.path.dirname(__file__), '../resources/client_secrets.json')
 
 scope = [
     'https://www.googleapis.com/auth/drive',
@@ -38,7 +38,7 @@ class GoogleOAuth:
         argv = ['--logging_level DEBUG']
         flags = parser.parse_args(argv[1:])
 
-        storage = Storage(os.path.join(os.path.dirname(__file__), 'credentials.json'))
+        storage = Storage(os.path.join(os.path.dirname(__file__), '../resources/credentials.json'))
 
         credentials = storage.get()
         http = httplib2.Http(cache=os.environ['HOME'] + '/.gdrive/cache')

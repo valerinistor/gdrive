@@ -263,6 +263,6 @@ class GoogleDrive:
             os.makedirs(path)
 
     def _notify(self, message):
-        icon = os.path.join(os.path.join(os.path.dirname(__file__)), 'drive.png')
+        icon = os.path.join(os.path.join(os.path.dirname(__file__)), '../resources/drive.png')
         notice = pynotify.Notification('Google Drive', message, icon)
         notice.show()
