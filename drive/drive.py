@@ -1,9 +1,9 @@
 from apiclient import errors
-from drivechanges import DriveChanges
 from drivefile import GoogleDriveFile
 from drivefile import folder_mime_type
 from drivefile import partial_fields
 from drivefile import partial_item_fields
+from drivechanges import DriveChanges
 from filewatcher  import FileWatcher
 import drive
 import logging
@@ -108,9 +108,10 @@ class GoogleDrive:
 
     def _get_remote_file(self, file_id):
         try:
-            return service.files().get(
-                       fileId=file_id,
-                       fields=partial_fields).execute()
+            with lock:
+                return service.files().get(
+                           fileId=file_id,
+                           fields=partial_fields).execute()
         except errors.HttpError, error:
             logger.error('an error occurred: %s', error)
             return None
