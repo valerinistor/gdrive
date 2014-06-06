@@ -87,14 +87,26 @@ class GoogleDrive:
                 drive_item.download_from_url()
 
     def _list_file(self, query=None):
-        items = []
-        try:
-            items = service.files().list(
-                     q=query,
-                     fields=partial_item_fields).execute()['items']
-        except errors.HttpError, error:
-            logger.error('an error occurred: %s', error)
-        return items
+        result = []
+        page_token = None
+        while True:
+            try:
+                param = {}
+                if page_token:
+                    param['pageToken'] = page_token
+                if query is not None:
+                    param['q'] = query
+                param['fields'] = partial_item_fields
+                files = service.files().list(**param).execute()
+
+                result.extend(files['items'])
+                page_token = files.get('nextPageToken')
+                if not page_token:
+                    break
+            except errors.HttpError, error:
+                print 'An error occurred: %s' % error
+                break
+        return result
 
     def _list_children(self, folderId, query=None):
         items = []

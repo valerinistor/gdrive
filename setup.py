@@ -2,11 +2,12 @@
 
 from drive.drive import GoogleDrive
 from oauth.oauth import GoogleOAuth
+import os
 
 if __name__ == '__main__':
 
     # authenticate to Drive
-    root_folder = './GoogleDrive'
+    root_folder = os.environ['HOME'] + '/GoogleDrive'
     goauth = GoogleOAuth()
     goauth.authorize()
 
