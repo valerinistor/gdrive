@@ -44,9 +44,10 @@ class GoogleDriveFile:
                              self.path)
                 return
 
-            return drive.service.files().get(
-                     fileId=file_id,
-                     fields=partial_fields).execute()
+            with drive.lock:
+                return drive.service.files().get(
+                         fileId=file_id,
+                         fields=partial_fields).execute()
         except errors.HttpError, error:
             logger.error('an error occurred: %s', error)
         return None
