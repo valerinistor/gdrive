@@ -3,6 +3,9 @@ import drive
 import logging
 import threading
 import time
+import sys
+import traceback
+import os
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -25,14 +28,19 @@ class DriveChanges (threading.Thread):
 
         changes, largestChangeId = self._retrieve_all_changes()
         while not self._stop_requested:
-            time.sleep(15)
+            try:
+                time.sleep(15)
+                changes, largestChangeId = self._retrieve_all_changes(largestChangeId + 1)
 
-            changes, largestChangeId = self._retrieve_all_changes(largestChangeId + 1)
+                if len(changes) == 0:
+                    continue
 
-            if len(changes) == 0:
-                continue
-
-            self.drive.notify_drive_changes(changes)
+                self.drive.notify_drive_changes(changes)
+            except:
+                _, exc_value, exc_tb = sys.exc_info()
+                filename, line_nr, func_name, _ = traceback.extract_tb(exc_tb)[-1]
+                err_details = '%s:%s:%s' % (os.path.basename(filename), func_name, line_nr)
+                logger.error('An error occurred in %s, at %s: %s', self.name, err_details, exc_value.message)
 
     def _retrieve_all_changes(self, start_change_id=None):
         result = []
@@ -54,6 +62,6 @@ class DriveChanges (threading.Thread):
                 if not page_token:
                     break
             except errors.HttpError, error:
-                print 'An error occurred: %s' % error
+                logger.error('An error occurred: %s', error)
                 break
         return (result, largestChangeId)

@@ -104,7 +104,7 @@ class GoogleDrive:
                 if not page_token:
                     break
             except errors.HttpError, error:
-                print 'An error occurred: %s' % error
+                logger.error('An error occurred: %s', error)
                 break
         return result
 
@@ -177,7 +177,8 @@ class GoogleDrive:
             # file does not exists locally
             if local_file is None:
                 if not change['deleted']:
-                    self.on_drive_create(change['fileId'])
+                    if change.has_key('file'):
+                        self.on_drive_create(change['fileId'])
             # file exists locally
             else:
                 if change['deleted']:
