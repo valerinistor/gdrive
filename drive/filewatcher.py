@@ -79,4 +79,3 @@ class FileWatcher (threading.Thread):
                 filename, line_nr, func_name, _ = traceback.extract_tb(exc_tb)[-1]
                 err_details = '%s:%s:%s' % (os.path.basename(filename), func_name, line_nr)
                 logger.error('An error occurred in %s, at %s: %s', self.name, err_details, exc_value.message)
-

@@ -142,7 +142,10 @@ class GoogleDrive:
 
         if os.path.isdir(path):
             return
-        self.drive_files[path].update(path)
+
+        head, _ = os.path.split(path)
+        parent = self._find_parent(head)
+        self.drive_files[path].update(path, parent.id)
 
     def on_local_create(self, path):
         head, _ = os.path.split(path)
