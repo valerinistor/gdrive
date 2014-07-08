@@ -59,11 +59,12 @@ class GoogleDriveFile:
 
         logger.info('downloading %s', self.path)
 
-        resp, content = drive.service._http.request(self.download_url)
-        if resp.status == 200:
-            self._save_local_file(content)
-        else:
-            logger.error('an error occurred: %s', resp)
+        with drive.lock:
+            resp, content = drive.service._http.request(self.download_url)
+            if resp.status == 200:
+                self._save_local_file(content)
+            else:
+                logger.error('an error occurred: %s', resp)
 
     def _md5Checksum(self, filePath):
         with open(filePath, 'rb') as fh:
