@@ -168,7 +168,7 @@ class GoogleDrive:
 
         logger.info('renamed from %s to %s', src_path, dest_path)
 
-        head, _ = os.path.split(dest_path)
+        head, _ = os.path.split(src_path)
         parent = self._find_parent(head)
         temp = self.drive_files[src_path]
         temp.update(dest_path, parent.id)
