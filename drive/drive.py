@@ -218,8 +218,8 @@ class GoogleDrive:
 
         if not local_file.md5Checksum == file_metadata['md5Checksum']:
             logger.info('drive change: modified %s', file_metadata['title'])
-            local_file.download_from_url()
             local_file.md5Checksum = file_metadata['md5Checksum']
+            local_file.download_from_url()
             self._notify('Changed ' + file_metadata['title'])
         else:
             logger.info('drive change: unknown change for %s', local_file.path)
