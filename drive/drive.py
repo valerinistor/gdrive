@@ -175,6 +175,9 @@ class GoogleDrive:
         head, _ = os.path.split(dest_path)
         parent = self._find_parent(head)
         if parent is None:
+            temp = self.drive_files[src_path]
+            self.drive_files[dest_path] = temp
+            del self.drive_files[src_path]
             return
 
         logger.info('renamed from %s to %s', src_path, dest_path)
