@@ -145,6 +145,9 @@ class GoogleDrive:
 
         head, _ = os.path.split(path)
         parent = self._find_parent(head)
+        if parent is None:
+            return
+
         self.drive_files[path].update(path, parent.id)
 
     def on_local_create(self, path):
@@ -158,6 +161,9 @@ class GoogleDrive:
 
         # create drive item
         parent = self._find_parent(head)
+        if parent is None:
+            return
+
         to_create = GoogleDriveFile(path)
         to_create.create(parent.id)
         self.drive_files[path] = to_create
@@ -166,10 +172,13 @@ class GoogleDrive:
         if not self.drive_files.has_key(src_path):
             return
 
+        head, _ = os.path.split(dest_path)
+        parent = self._find_parent(head)
+        if parent is None:
+            return
+
         logger.info('renamed from %s to %s', src_path, dest_path)
 
-        head, _ = os.path.split(src_path)
-        parent = self._find_parent(head)
         temp = self.drive_files[src_path]
         temp.update(dest_path, parent.id)
         self.drive_files[dest_path] = temp
@@ -269,10 +278,7 @@ class GoogleDrive:
     def _find_parent(self, path):
         if self.drive_files.has_key(path):
             return self.drive_files[path]
-        head, _ = os.path.split(path)
-        while not self.drive_files.has_key(head):
-            head, _ = os.path.split(head)
-        return self.drive_files[head]
+        return None
 
     def _create_local_dir(self, path):
         if not os.path.exists(path):
