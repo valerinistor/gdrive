@@ -249,6 +249,8 @@ class GoogleDrive:
     def on_drive_rename(self, src_path, dest_path):
         if not self.drive_files.has_key(src_path):
             return
+        if not os.path.exists(src_path):
+            return
 
         logger.info('drive change: renamed from %s to %s', src_path, dest_path)
 
